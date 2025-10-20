@@ -1,5 +1,7 @@
-# LLaMA-Factory
 # LLaMA Factory 完整教程目录结构
+参考链接：
+https://mp.weixin.qq.com/s/aQCY8873d09zFIhMhrx7Pg
+https://www.bilibili.com/video/BV1djgRzxEts?p=3&vd_source=a4e4b0c580c9bdc17018ba296e023b71
 
 ## 📚 教程章节规划
 

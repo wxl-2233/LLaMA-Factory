@@ -1,9 +1,9 @@
 # 🦙 LLaMA Factory 学习笔记
 
 > **参考资料**  
-> - [LLaMA Factory 详解（公众号）](https://mp.weixin.qq.com/s/aQCY8873d09zFIhMhrx7Pg)  
+> - [LLaMA Factory（一）](https://mp.weixin.qq.com/s/aQCY8873d09zFIhMhrx7Pg)
+> - [LLaMA Factory（二）](https://mp.weixin.qq.com/s/N8LdX3eRuaIJ-yxkpxZJ5w)
 > - [Bilibili 教程视频](https://www.bilibili.com/video/BV1oTEwzcEeZ?t=0.2)
-
 ---
 
 ## 一、介绍
@@ -164,3 +164,307 @@ LLaMA Factory 的 WebUI 可分为五大模块：
 
 ---
 
+### 3. 模型量化（Model Quantization）
+
+模型量化与蒸馏同属于 **模型压缩（Model Compression）** 技术。  
+对于参数量巨大的模型（如 DeepSeek-R1 6710B、Qwen3 235B 等），直接部署成本极高，因此通常通过量化或蒸馏降低模型复杂度，在 **轻微精度损失** 的情况下显著减少显存与计算需求。
+
+#### 🌐 什么是模型量化？
+
+模型量化是一种通过**降低权重与激活值的数值精度**来减少模型大小、加快推理速度，同时尽量保持准确率的技术。  
+简而言之，就是“用更少的比特去存储模型参数”。
+
+> 🎧 类比理解：  
+> 从无损音乐（FLAC）到压缩音乐（MP3）  
+> - FLAC ≈ FP32 精度模型（完整但大）  
+> - MP3 ≈ INT8/INT4 量化模型（更小但略有精度损失）
+
+---
+
+#### 🧮 模型参数与精度单位
+
+模型参数通常以浮点数存储。常见精度格式包括：
+
+| 精度类型 | 示例 | 含义 | 特点 |
+|-----------|--------|------|------|
+| **FP（Floating Point）** | FP16 / FP32 | 标准浮点数格式 | 高精度，但占用显存多 |
+| **BF（Brain Floating Point）** | BF16 | 为深度学习优化的浮点表示 | 精度与效率平衡 |
+| **INT（Integer）** | INT8 / INT4 | 整数表示的量化权重 | 极低显存占用，可能损失精度 |
+
+💡 在计算机中：
+- FP32：32 位（4 字节）表示一个浮点数  
+- FP16：16 位（2 字节）表示一个浮点数  
+- INT8：8 位（1 字节）表示一个整数  
+
+---
+
+#### ⚙️ QLoRA 简介
+
+> **QLoRA（Quantized LoRA）**  
+> 是一种结合 **LoRA + 4-bit 动态量化** 的创新方法。
+
+通过：
+- 4-bit 量化基础模型  
+- 双量化 + 训练时反量化机制  
+
+QLoRA 实现了：
+- 🚀 显存占用极低  
+- ✅ 保留梯度更新精度  
+- 💨 训练速度与内存效率兼得  
+
+> 因此，当在 LLaMA Factory 中选择 **量化等级（如 4-bit）** 时，默认使用的微调方法就是 **QLoRA**。
+
+---
+
+### 4. 对话模板（Conversation Template）
+
+对话模板（Conversation Template）是 LLM 与用户交互的 **输入格式化器**。  
+不同模型（如 Llama、Qwen、ChatGLM）有不同的输入格式要求。
+
+#### 🧩 作用
+
+1. **训练-推理一致性**：  
+   模型训练与使用阶段的输入格式需保持一致，否则性能会显著下降。
+
+2. **上下文管理**：  
+   模板帮助组织多轮对话、区分说话者身份（User / Assistant / System）。
+
+3. **高级功能支持**：  
+   - 系统提示（System Prompt）  
+   - 工具调用（Tool Calling）  
+   - 思维链（Chain-of-Thought）  
+   - 多模态输入（图像、音频等）
+
+---
+
+#### 🧱 Qwen 对话模板示例
+
+```python
+register_template(
+    name="qwen",
+    format_user=StringFormatter(slots=["<|im_start|>user\n{{content}}<|im_end|>\n<|im_start|>assistant\n"]),
+    format_assistant=StringFormatter(slots=["{{content}}<|im_end|>\n"]),
+    format_system=StringFormatter(slots=["<|im_start|>system\n{{content}}<|im_end|>\n"]),
+    format_function=FunctionFormatter(slots=["{{content}}<|im_end|>\n"], tool_format="qwen"),
+    format_observation=StringFormatter(
+        slots=["<|im_start|>user\n<tool_response>\n{{content}}\n</tool_response><|im_end|>\n<|im_start|>assistant\n"]
+    ),
+    format_tools=ToolFormatter(tool_format="qwen"),
+    default_system="You are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
+    stop_words=["<|im_end|>"],
+    replace_eos=True,
+)
+````
+
+📜 **示例输入输出**
+
+**用户输入：**
+
+> 帮我写一首关于春天的诗
+
+**格式化后：**
+
+```
+<|im_start|>system
+You are Qwen, created by Alibaba Cloud. You are a helpful assistant.
+<|im_end|>
+
+<|im_start|>user
+帮我写一首关于春天的诗
+<|im_end|>
+
+<|im_start|>assistant
+```
+
+模型在 `<|im_start|>assistant` 后开始生成文本，直到 `<|im_end|>` 停止。
+
+---
+
+### 5. 加速方式（Acceleration Methods）
+
+LLaMA Factory 支持多种加速方法：
+
+| 加速方法                 | 说明                                                  | 配置参数                        |
+| -------------------- | --------------------------------------------------- | --------------------------- |
+| **FlashAttention-2** | 提高注意力计算速度、减少显存占用                                    | `flash_attn: fa2`           |
+| **Unsloth**          | 支持 LLaMA、Mistral、Qwen、Phi 等模型；优化 QLoRA/LoRA 微调速度与显存 | `use_unsloth: True`         |
+| **Liger Kernel**     | 优化大模型训练吞吐量与显存使用                                     | `enable_liger_kernel: True` |
+
+> ⚙️ **推荐配置**
+> 若本地硬件资源有限，可选择 **Unsloth + 4-bit 量化**；
+> 若对性能要求一般，可保留默认（FlashAttention）。
+
+---
+
+当然可以 ✅
+以下是继续为你生成的 **GitHub Markdown 展示格式**，风格与前文保持一致，结构清晰、可直接粘贴到 `README.md` 或单独文档中使用：
+
+---
+
+## 六、数据集（Dataset）
+
+📘 **详细教程请参阅**：[`数据集.md`](./数据集.md)
+
+在 **LLaMA Factory** 中主要支持以下两种数据格式：
+
+* 🟦 **Alpaca 格式**（单轮指令数据）
+* 🟩 **ShareGPT 格式**（多轮对话数据）
+
+---
+
+### 📁 数据集配置位置
+
+在 `Train` 选项下，LLaMA Factory 提供了两个与数据集相关的配置项：
+
+| 配置项                        | 说明                    |
+| :------------------------- | :-------------------- |
+| **数据路径（data path）**        | 默认指向项目文件夹下的 `data` 目录 |
+| **数据集（dataset_info.json）** | 管理所有数据集的加载与映射配置       |
+
+其基本结构如下：
+
+```json
+{
+  "数据集名称": {
+    "配置项1": "值1",
+    "配置项2": "值2"
+  }
+}
+```
+
+---
+
+### 🌐 数据源定义方式
+
+LLaMA Factory 支持 **三种数据源加载方式**：
+
+#### ① 在线数据集
+
+来源平台：**Hugging Face Hub**、**ModelScope Hub**、**OpenMind Hub**
+
+```json
+"alpaca_en": {
+  "hf_hub_url": "llamafactory/alpaca_en",
+  "ms_hub_url": "llamafactory/alpaca_en",
+  "om_hub_url": "HaM/alpaca_en"
+}
+```
+
+#### ② 本地文件
+
+通过相对路径或绝对路径指定本地数据文件：
+
+```json
+"alpaca_en_demo": {
+  "file_name": "alpaca_en_demo.json"
+}
+```
+
+#### ③ 自定义脚本生成数据集
+
+通过脚本自动加载或生成数据：
+
+```json
+"belle_multiturn": {
+  "script_url": "belle_multiturn",
+  "formatting": "sharegpt"
+}
+```
+
+---
+
+### 🧩 数据格式配置
+
+#### （1）基本格式类型
+
+通过 `formatting` 字段指定数据格式：
+
+```json
+"slimorca": {
+  "hf_hub_url": "Open-Orca/SlimOrca",
+  "formatting": "sharegpt"
+}
+```
+
+#### （2）列映射配置
+
+将原始数据字段映射为标准字段：
+
+```json
+"openorca": {
+  "hf_hub_url": "Open-Orca/OpenOrca",
+  "columns": {
+    "prompt": "question",
+    "response": "response",
+    "system": "system_prompt"
+  }
+}
+```
+
+#### （3）角色标签配置（ShareGPT 格式）
+
+自定义用户与助手的角色标签：
+
+```json
+"mllm_demo": {
+  "formatting": "sharegpt",
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant"
+  }
+}
+```
+
+#### （4）多模态数据支持
+
+支持文本、图像、视频、音频等数据：
+
+```json
+"mllm_demo": {
+  "file_name": "mllm_demo.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages",
+    "images": "images"
+  }
+}
+```
+
+---
+
+### ⚙️ 特殊训练任务配置
+
+#### ✅ 排序 / 对比学习数据（RLHF / DPO）
+
+```json
+"webgpt": {
+  "hf_hub_url": "openai/webgpt_comparisons",
+  "ranking": true,
+  "columns": {
+    "prompt": "question",
+    "chosen": "answer_0",
+    "rejected": "answer_1"
+  }
+}
+```
+
+#### 🧰 工具调用（Tool Calling）数据
+
+```json
+"glaive_toolcall_en_demo": {
+  "file_name": "glaive_toolcall_en_demo.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "conversations",
+    "tools": "tools"
+  }
+}
+```
+
+---
+
+📄 **延伸阅读**
+
+> 数据集构造与自定义方法详见：[`数据集的构造.md`](./数据集的构造.md)

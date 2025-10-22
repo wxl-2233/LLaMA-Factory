@@ -4,7 +4,7 @@
 > - [（一）LLaMA Factory](https://mp.weixin.qq.com/s/aQCY8873d09zFIhMhrx7Pg)
 > - [（二）数据集](https://mp.weixin.qq.com/s/N8LdX3eRuaIJ-yxkpxZJ5w)
 > - [（三）参数](https://mp.weixin.qq.com/s/AbyWaTaPOp9sr5mz5SOVwg)
-> - [（四）LOSS曲线](https://mp.weixin.qq.com/s/6sNGvqLktPk6AP7kPs9JyA)
+> - [（四）评估与本地](https://mp.weixin.qq.com/s/6sNGvqLktPk6AP7kPs9JyA)
 > - [Bilibili 教程视频](https://www.bilibili.com/video/BV1oTEwzcEeZ?t=0.2)
 ---
 
@@ -109,3 +109,19 @@ LLaMA Factory 的 WebUI 主要可分为五大功能区域：
   - 设备兼容: CPU/GPU 优化
   - 输出目录: 自定义保存路径
 ```
+
+> 📦 模型导出详细操作可查看：[`Export.md`](./docs/Export.md)
+
+---
+
+### 6. **本地部署与快速推理** 🖥️
+
+**功能**：模型在本地或服务器环境中的加载、测试与部署
+
+* **环境依赖**：Transformers / vLLM / GGUF
+* **命令行推理**：单轮与多轮对话支持
+* **GPU 优化**：自动显存管理与批量生成
+
+> 🚀 本地推理配置详见：[`Local.md`](./docs/Local.md)
+
+---

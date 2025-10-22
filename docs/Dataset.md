@@ -2,6 +2,7 @@
 
 > 本文档整合了 **LLaMA Factory** 的数据集配置说明与 **Easy Dataset（EDS）** 数据构造指南，涵盖数据加载、格式定义、增强方法与质量控制标准。
 
+../images/data1.jpg
 ---
 
 ## 📑 目录

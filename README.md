@@ -84,22 +84,23 @@ LLaMA Factory 的 WebUI 主要可分为五大功能区域：
 | **数据集配置** | 数据路径、验证集比例、格式映射 | [`Dataset.md`](./docs/Dataset.md) |
 | **训练参数** | 学习率、训练轮数、批量大小 | [`Parameters.md`](./docs/Parameters.md) |
 | **高级配置** | LoRA 秩、RLHF 参数、优化器选择 | |
-| **可视化** | SwanLab 监控、Loss 曲线配置 | [`Loss.md`](./docs/Loss.md) |
+| **可视化** | SwanLab 监控、Loss 曲线配置 | |
 
 ### 3. **模型评估** 📊
 **功能**：模型性能验证与测试
 - **评估数据集**：支持多数据集并行评估
 - **自动化测试**：批量推理与指标计算
 - **结果分析**：准确率、Loss 趋势、性能对比
+> 详细结果分析可查看  [`Loss.md`](./docs/Loss.md)
 
 ### 4. **在线推理** 💬
-**功能**：实时模型对话测试
+**功能**：实时模型对话测试 （Chat）
 - **推理引擎**：HuggingFace / vLLM / 其他后端
 - **对话界面**：多轮对话、角色扮演、流式输出
 - **参数调节**：Temperature、Top-p、Max tokens
 
 ### 5. **模型导出** 📦
-**功能**：训练成果导出与部署
+**功能**：训练成果导出与部署 （Export）
 ```yaml
 导出配置：
   - 模型格式: HuggingFace / ONNX / GGUF
